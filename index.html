@@ -30,6 +30,7 @@
       display: flex;
       justify-content: center;
       padding: 12px;
+      overflow-x: hidden;
     }
     .game-wrapper {
       width: 100%;
@@ -151,6 +152,29 @@
       box-shadow: none;
       cursor: not-allowed;
     }
+
+    /* ギブアップボタン用のスタイル */
+    .btn-hint {
+      width: 100%;
+      background: transparent;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: var(--gold);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s ease;
+    }
+    .btn-hint:active {
+      background: rgba(245, 158, 11, 0.15);
+    }
+
     .input-field {
       width: 100%;
       background: #090d16;
@@ -173,13 +197,117 @@
       margin-top: 6px;
       font-weight: bold;
     }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
+
+    /* カメラ＆AR降下画面（フルスクリーン演出） */
+    #ar-view {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #camera-video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .ar-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(0,0,0,0.1) 0%, rgba(13,19,31,0.6) 100%);
+      pointer-events: none;
+    }
+    .ar-guide-text {
+      position: absolute;
+      top: 30px;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid var(--gold);
+      padding: 8px 18px;
+      border-radius: 20px;
+      color: var(--gold);
+      font-size: 0.9rem;
+      font-weight: bold;
+      z-index: 10001;
+      text-align: center;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
+    }
+
+    /* 空から降ってくる光の結晶 */
+    .falling-crystal {
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(13, 19, 31, 0.85);
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 25px #f59e0b, 0 0 50px #f59e0b;
+      padding: 16px 26px;
+      border-radius: 16px;
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      z-index: 10002;
+      animation: fallDown 3.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    .falling-crystal span {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--gold);
+      margin-top: 4px;
+      letter-spacing: 1px;
+    }
+    @keyframes fallDown {
+      0% {
+        top: -120px;
+        opacity: 0;
+        transform: translateX(-50%) scale(0.6) rotate(-15deg);
+      }
+      30% {
+        opacity: 1;
+      }
+      100% {
+        top: 42%;
+        opacity: 1;
+        transform: translateX(-50%) scale(1.1) rotate(0deg);
+      }
+    }
+    .close-ar-btn {
+      position: absolute;
+      bottom: 40px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      z-index: 10001;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
 <div class="game-wrapper">
-  <!-- 上部ステータスバー -->
   <div class="status-bar">
     <div class="badge-group">
       <div class="icon-badge">
@@ -194,7 +322,6 @@
     <div style="font-size: 0.8rem; color: var(--gold); font-weight:bold;" id="stage-badge">節: 壱</div>
   </div>
 
-  <!-- クエスト本体 -->
   <div class="quest-card" id="quest-area">
     <div class="quest-header">
       <svg class="svg-icon" style="width:24px;height:24px;color:var(--gold);" viewBox="0 0 24 24"><path d="m6.92 5 8.49 8.49-1.42 1.41L5.5 6.41 6.92 5M3 13.91l8.49-8.49.71.71-8.49 8.49-.71-.71M21 3l-6.36 6.36 1.41 1.42L21 5.41 21 3M19.59 2.59 13.22 8.95l.71.71 6.37-6.36-.71-.71M7.91 22.09l-4.95-4.95 3.54-3.54 4.95 4.95-3.54 3.54z"/></svg>
@@ -208,7 +335,6 @@
       </div>
     </div>
 
-    <!-- 未探索時 -->
     <div id="lock-screen">
       <button class="btn-game" id="scan-btn" onclick="searchClue()">
         <svg class="svg-icon" style="color:#1e1b18;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
@@ -216,7 +342,6 @@
       </button>
     </div>
 
-    <!-- 探索後（謎解き入力） -->
     <div id="unlock-screen" class="hidden">
       <div class="story-scroll" id="story-text"></div>
       <p style="font-size:0.9rem; margin-bottom: 8px; color: var(--gold); font-weight:bold;" id="riddle-q"></p>
@@ -224,14 +349,32 @@
       <button class="btn-game" onclick="checkAnswer()">
         <span>封印を解く</span>
       </button>
+
+      <!-- ギブアップ（天啓ボタン） -->
+      <button class="btn-hint" onclick="startCameraHint()">
+        🌌 妙見の星を仰ぐ（ギブアップ・答えを降臨）
+      </button>
     </div>
 
     <div class="msg-feedback" id="feedback"></div>
   </div>
 </div>
 
+<!-- カメラAR画面 -->
+<div id="ar-view" class="hidden">
+  <video id="camera-video" playsinline autoplay muted></video>
+  <div class="ar-overlay"></div>
+  <div class="ar-guide-text">✨ 空を見上げよ…星の導きが降り注ぐ ✨</div>
+  
+  <div id="falling-crystal" class="falling-crystal hidden" onclick="captureCrystal()">
+    <div id="crystal-text">花</div>
+    <span>【タップして封印解除】</span>
+  </div>
+
+  <button class="close-ar-btn" onclick="stopCameraHint()">戻る</button>
+</div>
+
 <script>
-// ステージデータ
 const STAGES = [
   {
     step: "壱",
@@ -240,6 +383,7 @@ const STAGES = [
     story: "<strong>【古文書：壱の巻】</strong><br>「和銅二年、神霊降り立ちしその夕べ、山々は突如として白や紅の彩りに覆われたり。里人は驚き、これを吉兆として地に名を残したという……」",
     riddle: "Q. 一夜にして山を埋め尽くし、この地の名の由来となったものは？",
     answers: ["花", "はな", "ハナ"],
+    correctWord: "花",
     hint: "山を覆った美しい植物（漢字一文字）だ。"
   },
   {
@@ -249,11 +393,13 @@ const STAGES = [
     story: "<strong>【古文書：弐の巻】</strong><br>「幕末の動乱期、国の平安と邪気を祓うため刀工・藤原綱俊により鍛えられし神剣。刃長三米余、重さ二十貫（約75kg）に達する天下無双の大太刀あり。その刀身に刻まれし銘は、邪悪を打ち破る祈りなり……」",
     riddle: "Q. この日本一の大太刀に刻まれ、邪気を打ち払う意を持つ「二文字」とは何か？",
     answers: ["破邪", "はじゃ", "ハジャ"],
+    correctWord: "破邪",
     hint: "刀の名「〇〇の御太刀」の最初の二文字だ。"
   }
 ];
 
 let currentIdx = 0;
+let cameraStream = null;
 
 function updateUIForCurrentStage() {
   const stage = STAGES[currentIdx];
@@ -308,30 +454,3 @@ function checkAnswer() {
     }, 500);
   } else {
     feedback.style.color = "var(--red)";
-    feedback.innerText = `違うようだ……（ヒント：${stage.hint}）`;
-  }
-}
-
-function showFinalClear() {
-  const questArea = document.getElementById("quest-area");
-  document.getElementById("clue-counter").innerText = "巻物: 2/2";
-  questArea.innerHTML = `
-    <div style="text-align: center; padding: 16px 8px;">
-      <svg class="svg-icon" style="width:48px;height:48px;color:var(--gold);margin-bottom:8px;" viewBox="0 0 24 24"><path d="M12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
-      <h2 style="color:var(--gold); font-size:1.4rem; margin-bottom:8px;">花岡踏破・満願成就！</h2>
-      <p style="font-size:0.9rem; color:var(--text-dim); line-height:1.7; margin-bottom:16px;">
-        一夜にして咲き誇った「花」の伝承と、<br>
-        天下無双の巨刃「破邪の御太刀」の封印を解き明かした！<br>
-        古の歴史は、そなたの記憶に刻印された。
-      </p>
-      <button class="btn-game" onclick="location.reload()">最初からもう一度挑戦</button>
-    </div>
-  `;
-}
-
-// 初回初期化
-updateUIForCurrentStage();
-</script>
-
-</body>
-</html>
