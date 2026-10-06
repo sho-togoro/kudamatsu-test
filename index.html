@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>下松史跡謎解き - 花岡編 [Ver.1]</title>
+  <title>下松史跡謎解き - 花岡編 [Ver.2]</title>
   <style>
     * {
       box-sizing: border-box;
@@ -130,7 +130,6 @@
     .msg-ok { color: #34d399; }
     .msg-ng { color: #f87171; }
 
-    /* カメラ起動時の全画面オーバーレイ */
     #camera-modal {
       position: fixed;
       top: 0;
@@ -223,7 +222,7 @@
   <div class="header">
     <div class="title">
       下松史跡巡礼 - 花岡の謎
-      <span class="version-tag">Ver.1</span>
+      <span class="version-tag">Ver.2</span>
     </div>
   </div>
 
@@ -339,7 +338,6 @@ function onAnswerClick() {
   }
 }
 
-// ---------- カメラAR起動処理（スマホ完全対応版） ----------
 function openCameraHint() {
   var stage = stages[currentStage];
   document.getElementById("camera-answer-word").innerText = stage.correct;
@@ -350,26 +348,22 @@ function openCameraHint() {
   errEl.style.display = "none";
   modal.style.display = "flex";
 
-  // カメラ機能が使えるか確認
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     errEl.innerText = "※お使いの環境ではカメラが使えません（夜空モード）";
     errEl.style.display = "block";
     return;
   }
 
-  // 背面カメラの起動を要求
   navigator.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: "environment" } },
     audio: false
   }).then(function(stream) {
     videoStream = stream;
     video.srcObject = stream;
-    // スマホでの自動再生を開始
     video.play().catch(function(e) {
       console.log("Play error:", e);
     });
   }).catch(function(err) {
-    // 許可されなかった場合やエラー時の案内
     errEl.innerText = "※カメラを許可すると背景が映ります（文字タップで進めます）";
     errEl.style.display = "block";
   });
@@ -386,13 +380,18 @@ function closeCamera() {
   }
 }
 
+// カメラの文字をタップしたときの処理：文字を入力するだけで止める
 function applyAnswerFromCamera() {
   var correctWord = stages[currentStage].correct;
   closeCamera();
   var box = document.getElementById("ans-box");
+  var msg = document.getElementById("msg");
   if (box) {
-    box.value = correctWord;
-    onAnswerClick();
+    box.value = correctWord; // 文字を入力欄に入れる
+    if (msg) {
+      msg.className = "message msg-ok";
+      msg.innerText = "星の導きにより文字が宿った！「封印を解く」を押せ。";
+    }
   }
 }
 
