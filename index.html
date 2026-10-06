@@ -75,6 +75,7 @@
       cursor: pointer;
       text-align: center;
       margin-top: 10px;
+      touch-action: manipulation;
     }
     .btn-main {
       background-color: #f59e0b;
@@ -85,14 +86,14 @@
     }
     .btn-hint {
       background-color: #374151;
-      color: #9ca3af;
-      border: 1px solid #4b5563;
+      color: #fbbf24;
+      border: 1px solid #f59e0b;
       font-size: 0.85rem;
-      padding: 10px;
+      padding: 12px;
+      margin-top: 14px;
     }
     .btn-hint:active {
       background-color: #4b5563;
-      color: #fff;
     }
     input[type="text"] {
       width: 100%;
@@ -118,32 +119,82 @@
     }
     .msg-ok { color: #34d399; }
     .msg-ng { color: #f87171; }
-    
-    /* ギブアップ演出用（画面全体に星空と答えが浮かぶ） */
-    .hint-modal {
+
+    /* カメラ起動時の全画面オーバーレイ */
+    #camera-modal {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: rgba(0, 0, 0, 0.92);
-      display: flex;
+      background-color: #000;
+      z-index: 99999;
+      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      z-index: 999;
     }
-    .hint-crystal {
-      background: #1e293b;
-      border: 2px solid #fbbf24;
-      box-shadow: 0 0 20px #f59e0b;
-      border-radius: 12px;
-      padding: 24px;
-      text-align: center;
-      color: #fff;
-      max-width: 300px;
+    #camera-video {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .camera-ui-top {
+      position: absolute;
+      top: 24px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #fbbf24;
+      padding: 8px 16px;
+      border-radius: 20px;
+      color: #fbbf24;
+      font-size: 0.85rem;
+      font-weight: bold;
+      z-index: 10;
+      text-align: center;
+    }
+    /* 景色の上に浮かび上がる答えのオーブ */
+    .answer-orb {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(17, 24, 39, 0.9);
+      border: 3px solid #fbbf24;
+      box-shadow: 0 0 25px #f59e0b, 0 0 50px #f59e0b;
+      padding: 20px 32px;
+      border-radius: 16px;
+      color: #fff;
+      text-align: center;
+      z-index: 10;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .answer-orb .word {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #fbbf24;
+      letter-spacing: 2px;
+    }
+    .answer-orb .sub {
+      font-size: 0.75rem;
+      color: #f3f4f6;
+      margin-top: 6px;
+      display: block;
+    }
+    .camera-close-btn {
+      position: absolute;
+      bottom: 30px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #fff;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      z-index: 10;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -154,24 +205,23 @@
     <div class="title">下松史跡巡礼 - 花岡の謎</div>
   </div>
 
-  <div class="card" id="app-content">
-    <!-- JavaScriptでここが確実に書き換わります -->
-  </div>
+  <div class="card" id="app-content"></div>
 </div>
 
-<!-- ギブアップ時の星降り画面 -->
-<div id="hint-modal" class="hint-modal" style="display: none;">
-  <div class="hint-crystal">
-    <div style="font-size: 0.85rem; color: #fbbf24; margin-bottom: 8px;">🌌 妙見の星が降り立った…</div>
-    <div style="font-size: 1.8rem; font-weight: bold; margin: 12px 0; color: #fff;" id="hint-word"></div>
-    <div style="font-size: 0.8rem; color: #9ca3af; margin-bottom: 16px;">この答えを授かりますか？</div>
-    <button class="btn btn-main" onclick="applyHintWord()">答えを入力して進む</button>
-    <button class="btn btn-hint" style="margin-top: 8px;" onclick="closeHint()">閉じる</button>
+<!-- カメラ全画面小窓 -->
+<div id="camera-modal">
+  <video id="camera-video" playsinline autoplay muted></video>
+  <div class="camera-ui-top">🌌 妙見の星が景色に文字を刻んだ！</div>
+  
+  <div class="answer-orb" onclick="applyAnswerFromCamera()">
+    <div class="word" id="camera-answer-word">花</div>
+    <span class="sub">【タップして答えを入力】</span>
   </div>
+
+  <button class="camera-close-btn" onclick="closeCamera()">戻る</button>
 </div>
 
 <script>
-// 謎解きデータ（花岡の歴史）
 var stages = [
   {
     num: "第1問",
@@ -180,8 +230,7 @@ var stages = [
     story: "【和銅2年の伝承】<br>宇佐八幡宮より神霊を迎えた夜、周囲の山々が一夜にして白や紅の彩りに埋め尽くされたという。里人はこれを喜び、この地を名付けた。",
     question: "一夜にして山を埋め尽くし、地名の由来となった美しい植物とは何か？",
     answers: ["花", "はな", "ハナ"],
-    correct: "花",
-    hintText: "花（はな）"
+    correct: "花"
   },
   {
     num: "第2問",
@@ -190,20 +239,18 @@ var stages = [
     story: "【幕末・嘉永2年の奉納】<br>国の平和と邪悪を祓うため、名工・藤原綱俊により鍛えられた全長4.65m・重さ約75kgの日本一の大太刀。その刀身に刻まれた祈りの言葉がある。",
     question: "この日本一の大太刀「〇〇の御太刀」に入る、邪気を打ち払う二文字は何か？",
     answers: ["破邪", "はじゃ", "ハジャ"],
-    correct: "破邪",
-    hintText: "破邪（はじゃ）"
+    correct: "破邪"
   }
 ];
 
 var currentStage = 0;
-var state = "SEARCH"; // SEARCH（探索前） または RIDDLE（謎解き中）
+var state = "SEARCH";
+var videoStream = null;
 
-// 画面を描画するメイン処理
 function render() {
   var content = document.getElementById("app-content");
   var stage = stages[currentStage];
 
-  // 1. 探索前の画面
   if (state === "SEARCH") {
     content.innerHTML = 
       '<span class="stage-badge">' + stage.num + '</span>' +
@@ -211,9 +258,7 @@ function render() {
       '<p style="font-size: 0.9rem; color: #9ca3af; line-height: 1.5;">' + stage.desc + '</p>' +
       '<button class="btn btn-main" onclick="onSearchClick()">📍 周囲を探索して手がかりを得る</button>' +
       '<div id="msg" class="message"></div>';
-  } 
-  // 2. 謎解き中の画面
-  else if (state === "RIDDLE") {
+  } else if (state === "RIDDLE") {
     content.innerHTML = 
       '<span class="stage-badge">' + stage.num + '</span>' +
       '<h2 style="font-size: 1.1rem; margin-bottom: 4px;">' + stage.name + '</h2>' +
@@ -221,25 +266,22 @@ function render() {
       '<div class="question-box">' + stage.question + '</div>' +
       '<input type="text" id="ans-box" placeholder="答えを入力" autocomplete="off">' +
       '<button class="btn btn-main" onclick="onAnswerClick()">封印を解く</button>' +
-      '<button class="btn btn-hint" onclick="openHint()">🌌 妙見の星を仰ぐ（ギブアップ・答え降臨）</button>' +
+      '<button class="btn btn-hint" onclick="openCameraHint()">🌌 妙見の星を仰ぐ（カメラで答えを映す）</button>' +
       '<div id="msg" class="message"></div>';
   }
 }
 
-// 探索ボタンを押したとき
 function onSearchClick() {
   var msg = document.getElementById("msg");
   msg.className = "message msg-ok";
   msg.innerText = "周囲を探索中...";
 
-  // 0.3秒だけ待って確実に謎解き画面に切り替える
   setTimeout(function() {
     state = "RIDDLE";
     render();
-  }, 300);
+  }, 250);
 }
 
-// 解答ボタンを押したとき
 function onAnswerClick() {
   var box = document.getElementById("ans-box");
   var inputVal = box.value.trim().toLowerCase();
@@ -260,7 +302,7 @@ function onAnswerClick() {
 
     setTimeout(function() {
       if (currentStage + 1 < stages.length) {
-        alert("正解！次の第2問へ進みます。");
+        alert("正解！第2問へ進みます。");
         currentStage++;
         state = "SEARCH";
         render();
@@ -274,26 +316,51 @@ function onAnswerClick() {
   }
 }
 
-// ギブアップ（ヒント表示）
-function openHint() {
-  document.getElementById("hint-word").innerText = stages[currentStage].correct;
-  document.getElementById("hint-modal").style.display = "flex";
+// ---------- カメラAR処理 ----------
+function openCameraHint() {
+  var stage = stages[currentStage];
+  document.getElementById("camera-answer-word").innerText = stage.correct;
+  var modal = document.getElementById("camera-modal");
+  var video = document.getElementById("camera-video");
+
+  modal.style.display = "flex";
+
+  // 背面カメラの起動
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false
+    }).then(function(stream) {
+      videoStream = stream;
+      video.srcObject = stream;
+    }).catch(function(err) {
+      // カメラが拒否された・PCの場合は夜空風の背景にする
+      video.style.backgroundColor = "#030712";
+    });
+  }
 }
 
-function closeHint() {
-  document.getElementById("hint-modal").style.display = "none";
+function closeCamera() {
+  var modal = document.getElementById("camera-modal");
+  modal.style.display = "none";
+  if (videoStream) {
+    videoStream.getTracks().forEach(function(track) {
+      track.stop();
+    });
+    videoStream = null;
+  }
 }
 
-function applyHintWord() {
-  closeHint();
+function applyAnswerFromCamera() {
+  var correctWord = stages[currentStage].correct;
+  closeCamera();
   var box = document.getElementById("ans-box");
   if (box) {
-    box.value = stages[currentStage].correct;
+    box.value = correctWord;
     onAnswerClick();
   }
 }
 
-// 全問クリア画面
 function showClear() {
   var content = document.getElementById("app-content");
   content.innerHTML = 
@@ -308,7 +375,6 @@ function showClear() {
     '</div>';
 }
 
-// 最初の起動
 render();
 </script>
 
