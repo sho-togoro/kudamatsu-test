@@ -153,13 +153,12 @@
       cursor: not-allowed;
     }
 
-    /* ギブアップボタン用のスタイル */
     .btn-hint {
       width: 100%;
-      background: transparent;
-      border: 1px solid rgba(245, 158, 11, 0.4);
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(245, 158, 11, 0.6);
       color: var(--gold);
-      padding: 10px;
+      padding: 11px;
       border-radius: 8px;
       font-size: 0.85rem;
       font-weight: 600;
@@ -169,10 +168,9 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: background 0.2s ease;
     }
     .btn-hint:active {
-      background: rgba(245, 158, 11, 0.15);
+      background: rgba(245, 158, 11, 0.2);
     }
 
     .input-field {
@@ -197,9 +195,8 @@
       margin-top: 6px;
       font-weight: bold;
     }
-    .hidden { display: none !important; }
 
-    /* カメラ＆AR降下画面（フルスクリーン演出） */
+    /* カメラ＆AR降下画面 */
     #ar-view {
       position: fixed;
       top: 0;
@@ -234,7 +231,7 @@
     .ar-guide-text {
       position: absolute;
       top: 30px;
-      background: rgba(0, 0, 0, 0.65);
+      background: rgba(0, 0, 0, 0.7);
       border: 1px solid var(--gold);
       padding: 8px 18px;
       border-radius: 20px;
@@ -243,22 +240,16 @@
       font-weight: bold;
       z-index: 10001;
       text-align: center;
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.8; }
-      50% { opacity: 1; }
     }
 
-    /* 空から降ってくる光の結晶 */
     .falling-crystal {
       position: absolute;
       top: -120px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(13, 19, 31, 0.85);
+      background: rgba(13, 19, 31, 0.9);
       border: 2px solid var(--gold);
-      box-shadow: 0 0 25px #f59e0b, 0 0 50px #f59e0b;
+      box-shadow: 0 0 25px #f59e0b;
       padding: 16px 26px;
       border-radius: 16px;
       color: #fff;
@@ -267,7 +258,7 @@
       text-align: center;
       cursor: pointer;
       z-index: 10002;
-      animation: fallDown 3.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      animation: fallDown 3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
     }
     .falling-crystal span {
       display: block;
@@ -280,15 +271,13 @@
       0% {
         top: -120px;
         opacity: 0;
-        transform: translateX(-50%) scale(0.6) rotate(-15deg);
+        transform: translateX(-50%) scale(0.6);
       }
-      30% {
-        opacity: 1;
-      }
+      30% { opacity: 1; }
       100% {
-        top: 42%;
+        top: 40%;
         opacity: 1;
-        transform: translateX(-50%) scale(1.1) rotate(0deg);
+        transform: translateX(-50%) scale(1.1);
       }
     }
     .close-ar-btn {
@@ -335,14 +324,16 @@
       </div>
     </div>
 
-    <div id="lock-screen">
+    <!-- 未探索画面 -->
+    <div id="lock-screen" style="display: block;">
       <button class="btn-game" id="scan-btn" onclick="searchClue()">
         <svg class="svg-icon" style="color:#1e1b18;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         <span>周囲を探索して手がかりを得る</span>
       </button>
     </div>
 
-    <div id="unlock-screen" class="hidden">
+    <!-- 探索後の謎解き画面 -->
+    <div id="unlock-screen" style="display: none;">
       <div class="story-scroll" id="story-text"></div>
       <p style="font-size:0.9rem; margin-bottom: 8px; color: var(--gold); font-weight:bold;" id="riddle-q"></p>
       <input type="text" id="answer-input" class="input-field" placeholder="答えを入力" autocomplete="off">
@@ -361,12 +352,12 @@
 </div>
 
 <!-- カメラAR画面 -->
-<div id="ar-view" class="hidden">
+<div id="ar-view" style="display: none;">
   <video id="camera-video" playsinline autoplay muted></video>
   <div class="ar-overlay"></div>
   <div class="ar-guide-text">✨ 空を見上げよ…星の導きが降り注ぐ ✨</div>
   
-  <div id="falling-crystal" class="falling-crystal hidden" onclick="captureCrystal()">
+  <div id="falling-crystal" class="falling-crystal" style="display: none;" onclick="captureCrystal()">
     <div id="crystal-text">花</div>
     <span>【タップして封印解除】</span>
   </div>
@@ -411,8 +402,8 @@ function updateUIForCurrentStage() {
   document.getElementById("answer-input").value = "";
   document.getElementById("feedback").innerText = "";
 
-  document.getElementById("lock-screen").classList.remove("hidden");
-  document.getElementById("unlock-screen").classList.add("hidden");
+  document.getElementById("lock-screen").style.display = "block";
+  document.getElementById("unlock-screen").style.display = "none";
   document.getElementById("scan-btn").disabled = false;
 }
 
@@ -424,12 +415,12 @@ function searchClue() {
   feedback.innerText = "周囲の霊気（位置情報）を探索中...";
 
   setTimeout(() => {
-    document.getElementById("lock-screen").classList.add("hidden");
-    document.getElementById("unlock-screen").classList.remove("hidden");
+    document.getElementById("lock-screen").style.display = "none";
+    document.getElementById("unlock-screen").style.display = "block";
     document.getElementById("target-desc").innerHTML = "手がかりを発見した！<br>古文書の暗号を解読せよ。";
     document.getElementById("clue-counter").innerText = `巻物: ${currentIdx + 1}/2`;
     feedback.innerText = "";
-  }, 900);
+  }, 700);
 }
 
 function checkAnswer() {
@@ -451,6 +442,78 @@ function checkAnswer() {
       } else {
         showFinalClear();
       }
-    }, 500);
+    }, 400);
   } else {
     feedback.style.color = "var(--red)";
+    feedback.innerText = `違うようだ……（ヒント：${stage.hint}）`;
+  }
+}
+
+// ----------------- カメラ＆答え降下（Web AR）処理 -----------------
+
+async function startCameraHint() {
+  const arView = document.getElementById("ar-view");
+  const video = document.getElementById("camera-video");
+  const crystal = document.getElementById("falling-crystal");
+  const crystalText = document.getElementById("crystal-text");
+
+  crystalText.innerText = STAGES[currentIdx].correctWord;
+  crystal.style.display = "none";
+  arView.style.display = "flex";
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false
+    });
+    cameraStream = stream;
+    video.srcObject = stream;
+  } catch (err) {
+    console.warn("カメラアクセス不可フォールバック:", err);
+    video.style.background = "#050b14";
+  }
+
+  setTimeout(() => {
+    crystal.style.display = "block";
+  }, 300);
+}
+
+function stopCameraHint() {
+  const arView = document.getElementById("ar-view");
+  arView.style.display = "none";
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+}
+
+function captureCrystal() {
+  const correct = STAGES[currentIdx].correctWord;
+  stopCameraHint();
+  document.getElementById("answer-input").value = correct;
+  checkAnswer();
+}
+
+function showFinalClear() {
+  const questArea = document.getElementById("quest-area");
+  document.getElementById("clue-counter").innerText = "巻物: 2/2";
+  questArea.innerHTML = `
+    <div style="text-align: center; padding: 16px 8px;">
+      <svg class="svg-icon" style="width:48px;height:48px;color:var(--gold);margin-bottom:8px;" viewBox="0 0 24 24"><path d="M12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+      <h2 style="color:var(--gold); font-size:1.4rem; margin-bottom:8px;">花岡踏破・満願成就！</h2>
+      <p style="font-size:0.9rem; color:var(--text-dim); line-height:1.7; margin-bottom:16px;">
+        一夜にして咲き誇った「花」の伝承と、<br>
+        天下無双の巨刃「破邪の御太刀」の封印を解き明かした！<br>
+        古の歴史は、そなたの記憶に刻印された。
+      </p>
+      <button class="btn-game" onclick="location.reload()">最初からもう一度挑戦</button>
+    </div>
+  `;
+}
+
+// 起動時初期化
+updateUIForCurrentStage();
+</script>
+
+</body>
+</html>
