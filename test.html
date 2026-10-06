@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>下松史跡冒険禄 - 花岡の秘宝</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#131b2e">
+
+  <style>
+    :root {
+      --bg: #0d131f;
+      --panel: #1a2234;
+      --panel-border: #475569;
+      --gold: #f59e0b;
+      --gold-glow: rgba(245, 158, 11, 0.4);
+      --green: #10b981;
+      --red: #ef4444;
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 12px;
+    }
+    .game-wrapper {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .status-bar {
+      background: var(--panel);
+      border: 2px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);
+    }
+    .badge-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(0,0,0,0.3);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--gold);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+    .svg-icon {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+    .quest-card {
+      background: var(--panel);
+      border: 2px solid var(--gold);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 0 15px var(--gold-glow);
+    }
+    .quest-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      border-bottom: 1px dashed var(--panel-border);
+      padding-bottom: 8px;
+    }
+    .quest-title {
+      font-size: 1.15rem;
+      font-weight: bold;
+      color: var(--gold);
+    }
+    .compass-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .compass-icon {
+      width: 32px;
+      height: 32px;
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+    .compass-text {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+    .story-scroll {
+      background: #fff8e7;
+      color: #3b2a1a;
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 14px;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      border-left: 5px solid #b45309;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+    }
+    .btn-game {
+      width: 100%;
+      background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+      color: #1e1b18;
+      border: 2px solid #fef3c7;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 0 #92400e;
+      transition: transform 0.05s ease;
+    }
+    .btn-game:active {
+      transform: translateY(4px);
+      box-shadow: none;
+    }
+    .btn-game:disabled {
+      background: #475569;
+      border-color: #64748b;
+      color: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .input-field {
+      width: 100%;
+      background: #090d16;
+      border: 2px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 1.1rem;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    .input-field:focus {
+      border-color: var(--gold);
+    }
+    .msg-feedback {
+      text-align: center;
+      font-size: 0.85rem;
+      min-height: 20px;
+      margin-top: 6px;
+      font-weight: bold;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="game-wrapper">
+  <!-- 上部ステータスバー -->
+  <div class="status-bar">
+    <div class="badge-group">
+      <div class="icon-badge">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+        <span>周防花岡</span>
+      </div>
+      <div class="icon-badge">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+        <span id="clue-counter">巻物: 0/2</span>
+      </div>
+    </div>
+    <div style="font-size: 0.8rem; color: var(--gold); font-weight:bold;" id="stage-badge">節: 壱</div>
+  </div>
+
+  <!-- クエスト本体 -->
+  <div class="quest-card" id="quest-area">
+    <div class="quest-header">
+      <svg class="svg-icon" style="width:24px;height:24px;color:var(--gold);" viewBox="0 0 24 24"><path d="m6.92 5 8.49 8.49-1.42 1.41L5.5 6.41 6.92 5M3 13.91l8.49-8.49.71.71-8.49 8.49-.71-.71M21 3l-6.36 6.36 1.41 1.42L21 5.41 21 3M19.59 2.59 13.22 8.95l.71.71 6.37-6.36-.71-.71M7.91 22.09l-4.95-4.95 3.54-3.54 4.95 4.95-3.54 3.54z"/></svg>
+      <div class="quest-title" id="stage-title">第一節：一夜の奇跡</div>
+    </div>
+
+    <div class="compass-box">
+      <svg class="compass-icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.93V17h-2v2.93A8 8 0 0 1 4.07 13H7v-2H4.07A8 8 0 0 1 11 4.07V7h2V4.07A8 8 0 0 1 19.93 11H17v2h2.93A8 8 0 0 1 13 19.93zM12 10a2 2 0 1 0 2 2 2 2 0 0 0-2-2z"/></svg>
+      <div class="compass-text" id="target-desc">
+        花岡の旧街道沿いに手がかりが眠っている。<br>現地で探索ボタンを押せ。
+      </div>
+    </div>
+
+    <!-- 未探索時 -->
+    <div id="lock-screen">
+      <button class="btn-game" id="scan-btn" onclick="searchClue()">
+        <svg class="svg-icon" style="color:#1e1b18;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <span>周囲を探索して手がかりを得る</span>
+      </button>
+    </div>
+
+    <!-- 探索後（謎解き入力） -->
+    <div id="unlock-screen" class="hidden">
+      <div class="story-scroll" id="story-text"></div>
+      <p style="font-size:0.9rem; margin-bottom: 8px; color: var(--gold); font-weight:bold;" id="riddle-q"></p>
+      <input type="text" id="answer-input" class="input-field" placeholder="答えを入力" autocomplete="off">
+      <button class="btn-game" onclick="checkAnswer()">
+        <span>封印を解く</span>
+      </button>
+    </div>
+
+    <div class="msg-feedback" id="feedback"></div>
+  </div>
+</div>
+
+<script>
+// ステージデータ
+const STAGES = [
+  {
+    step: "壱",
+    title: "第一節：一夜の奇跡",
+    compass: "花岡の旧街道沿いに手がかりが眠っている。<br>現地で探索ボタンを押せ。",
+    story: "<strong>【古文書：壱の巻】</strong><br>「和銅二年、神霊降り立ちしその夕べ、山々は突如として白や紅の彩りに覆われたり。里人は驚き、これを吉兆として地に名を残したという……」",
+    riddle: "Q. 一夜にして山を埋め尽くし、この地の名の由来となったものは？",
+    answers: ["花", "はな", "ハナ"],
+    hint: "山を覆った美しい植物（漢字一文字）だ。"
+  },
+  {
+    step: "弐",
+    title: "第二節：破邪の神剣",
+    compass: "八幡宮の杜深く、巨刃の霊気が漂う。<br>宝物館の気配に近づき探索せよ。",
+    story: "<strong>【古文書：弐の巻】</strong><br>「幕末の動乱期、国の平安と邪気を祓うため刀工・藤原綱俊により鍛えられし神剣。刃長三米余、重さ二十貫（約75kg）に達する天下無双の大太刀あり。その刀身に刻まれし銘は、邪悪を打ち破る祈りなり……」",
+    riddle: "Q. この日本一の大太刀に刻まれ、邪気を打ち払う意を持つ「二文字」とは何か？",
+    answers: ["破邪", "はじゃ", "ハジャ"],
+    hint: "刀の名「〇〇の御太刀」の最初の二文字だ。"
+  }
+];
+
+let currentIdx = 0;
+
+function updateUIForCurrentStage() {
+  const stage = STAGES[currentIdx];
+  document.getElementById("stage-badge").innerText = `節: ${stage.step}`;
+  document.getElementById("stage-title").innerText = stage.title;
+  document.getElementById("target-desc").innerHTML = stage.compass;
+  document.getElementById("story-text").innerHTML = stage.story;
+  document.getElementById("riddle-q").innerText = stage.riddle;
+  document.getElementById("answer-input").value = "";
+  document.getElementById("feedback").innerText = "";
+
+  document.getElementById("lock-screen").classList.remove("hidden");
+  document.getElementById("unlock-screen").classList.add("hidden");
+  document.getElementById("scan-btn").disabled = false;
+}
+
+function searchClue() {
+  const btn = document.getElementById("scan-btn");
+  const feedback = document.getElementById("feedback");
+  btn.disabled = true;
+  feedback.style.color = "var(--gold)";
+  feedback.innerText = "周囲の霊気（位置情報）を探索中...";
+
+  setTimeout(() => {
+    document.getElementById("lock-screen").classList.add("hidden");
+    document.getElementById("unlock-screen").classList.remove("hidden");
+    document.getElementById("target-desc").innerHTML = "手がかりを発見した！<br>古文書の暗号を解読せよ。";
+    document.getElementById("clue-counter").innerText = `巻物: ${currentIdx + 1}/2`;
+    feedback.innerText = "";
+  }, 900);
+}
+
+function checkAnswer() {
+  const ans = document.getElementById("answer-input").value.trim().toLowerCase();
+  const feedback = document.getElementById("feedback");
+  const stage = STAGES[currentIdx];
+
+  const isCorrect = stage.answers.some(a => a.toLowerCase() === ans);
+
+  if (isCorrect) {
+    feedback.style.color = "var(--green)";
+    feedback.innerText = "封印解除！古の記憶が刻まれた。";
+
+    setTimeout(() => {
+      if (currentIdx + 1 < STAGES.length) {
+        alert("【見事解読！】\n第一節を突破した！\n続いて第二節、花岡八幡宮の「破邪の御太刀」へ挑め！");
+        currentIdx++;
+        updateUIForCurrentStage();
+      } else {
+        showFinalClear();
+      }
+    }, 500);
+  } else {
+    feedback.style.color = "var(--red)";
+    feedback.innerText = `違うようだ……（ヒント：${stage.hint}）`;
+  }
+}
+
+function showFinalClear() {
+  const questArea = document.getElementById("quest-area");
+  document.getElementById("clue-counter").innerText = "巻物: 2/2";
+  questArea.innerHTML = `
+    <div style="text-align: center; padding: 16px 8px;">
+      <svg class="svg-icon" style="width:48px;height:48px;color:var(--gold);margin-bottom:8px;" viewBox="0 0 24 24"><path d="M12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+      <h2 style="color:var(--gold); font-size:1.4rem; margin-bottom:8px;">花岡踏破・満願成就！</h2>
+      <p style="font-size:0.9rem; color:var(--text-dim); line-height:1.7; margin-bottom:16px;">
+        一夜にして咲き誇った「花」の伝承と、<br>
+        天下無双の巨刃「破邪の御太刀」の封印を解き明かした！<br>
+        古の歴史は、そなたの記憶に刻印された。
+      </p>
+      <button class="btn-game" onclick="location.reload()">最初からもう一度挑戦</button>
+    </div>
+  `;
+}
+
+// 初回初期化
+updateUIForCurrentStage();
+</script>
+
+</body>
+</html>
