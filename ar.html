@@ -3,81 +3,114 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>花岡 史跡AR</title>
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <title>花岡 史跡AR (画像認識版)</title>
+  
+  <!-- MindARとA-Frameの読み込み -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
   <style>
-    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
     .ar-guide {
       position: fixed;
       top: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #fbbf24;
       color: #fbbf24;
-      padding: 10px 20px;
-      border-radius: 24px;
+      padding: 10px 22px;
+      border-radius: 30px;
       font-size: 0.9rem;
       font-weight: bold;
-      z-index: 1000;
-      border: 1px solid #fbbf24;
+      z-index: 10000;
       pointer-events: none;
       text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
       width: 80%;
       max-width: 320px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    /* スキャン中の四角い枠演出 */
+    .scanning-overlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 260px;
+      height: 260px;
+      border: 2px dashed rgba(251, 191, 36, 0.6);
+      border-radius: 50%;
+      z-index: 9999;
+      pointer-events: none;
+      box-sizing: border-box;
     }
   </style>
 </head>
 <body>
 
-  <div class="ar-guide" id="guide-text">📷 黒枠付きのマンホールマーカーにかざしてください</div>
+  <div class="ar-guide" id="guide-text">📷 マンホールの絵にかざしてください</div>
+  <div class="scanning-overlay" id="scan-frame"></div>
 
-  <!-- A-Frame AR シーン -->
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;">
+  <!-- MindAR シーン -->
+  <a-scene 
+    mindar-image="imageTargetSrc: targets.mind; filterMinCF: 0.001; filterBeta: 1000;" 
+    color-space="sRGB" 
+    renderer="colorManagement: true, physicallyCorrectLights" 
+    vr-mode-ui="enabled: false" 
+    device-orientation-permission-ui="enabled: false">
     
-    <!-- アップロードした pattern-marker.patt を指定 -->
-    <a-marker id="my-marker" type="pattern" url="pattern-marker.patt">
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- targets.mind 内の最初の画像（インデックス0）を認識したとき -->
+    <a-entity mindar-image-target="targetIndex: 0" id="target-anchor">
       
-      <!-- 1. 「花岡」と書かれた黄金の御札（日本語対応プレート） -->
-      <a-plane id="text-plane" position="0 0.3 0" rotation="-90 0 0" width="2" height="1" material="transparent: true;"></a-plane>
+      <!-- 1. 「花岡」と書かれた黄金プレート（マンホールの中心真上に浮かぶ） -->
+      <a-plane id="text-plane" position="0 0 0.1" width="1.2" height="0.6" material="transparent: true;"></a-plane>
 
-      <!-- 2. その上空でゆっくり自転する黄金の星（ピラミッド結晶） -->
-      <a-tetrahedron position="0 1.0 0" radius="0.4" color="#f59e0b" animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-tetrahedron>
+      <!-- 2. ふわふわ浮遊しながら回る黄金の星（ピラミッド結晶） -->
+      <a-tetrahedron 
+        position="0 0.6 0.2" 
+        radius="0.25" 
+        color="#fbbf24" 
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 3500; easing: linear">
+      </a-tetrahedron>
 
-    </a-marker>
-
-    <a-entity camera></a-entity>
+    </a-entity>
   </a-scene>
 
   <script>
-    // 日本語「花岡」を綺麗にテクスチャとして描画
+    // 日本語「花岡」の文字プレートを描画
     window.addEventListener('DOMContentLoaded', () => {
       const canvas = document.createElement('canvas');
       canvas.width = 512;
       canvas.height = 256;
       const ctx = canvas.getContext('2d');
 
-      // 背景の札（黒金枠）
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
-      ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 20) : ctx.fillRect(10, 10, 492, 236);
+      // 背景プレート
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+      ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 24) : ctx.fillRect(10, 10, 492, 236);
       ctx.fill();
 
+      // 金の縁取り
       ctx.lineWidth = 8;
-      ctx.strokeStyle = '#f59e0b';
-      ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 20) : ctx.strokeRect(10, 10, 492, 236);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 24) : ctx.strokeRect(10, 10, 492, 236);
       ctx.stroke();
 
-      // 文字「花 岡」
-      ctx.font = 'bold 80px "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
-      ctx.fillStyle = '#f59e0b';
+      // 「花 岡」の文字
+      ctx.font = 'bold 84px "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+      ctx.fillStyle = '#fbbf24';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('花  岡', 256, 105);
 
-      // 補足英字
+      // 下松・花岡のサブタイトル
       ctx.font = 'bold 24px sans-serif';
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#f1f5f9';
       ctx.fillText('— HANAOKA SHISEKI —', 256, 175);
 
       const texture = new THREE.CanvasTexture(canvas);
@@ -87,16 +120,23 @@
         plane.getObject3D('mesh').material.needsUpdate = true;
       });
 
-      // マーカー認識時のガイド文字変更
-      const marker = document.getElementById('my-marker');
+      // 画像を認識した時のイベント処理
+      const targetAnchor = document.getElementById('target-anchor');
       const guide = document.getElementById('guide-text');
-      marker.addEventListener('markerFound', () => {
-        guide.innerText = '✨ 花岡の霊気を検知しました！';
+      const scanFrame = document.getElementById('scan-frame');
+
+      targetAnchor.addEventListener('targetFound', () => {
+        guide.innerText = '✨ 花岡の霊気を検知！';
+        guide.style.borderColor = '#34d399';
         guide.style.color = '#34d399';
+        scanFrame.style.display = 'none'; // 枠を隠す
       });
-      marker.addEventListener('markerLost', () => {
-        guide.innerText = '📷 黒枠付きのマンホールマーカーにかざしてください';
+
+      targetAnchor.addEventListener('targetLost', () => {
+        guide.innerText = '📷 マンホールの絵にかざしてください';
+        guide.style.borderColor = '#fbbf24';
         guide.style.color = '#fbbf24';
+        scanFrame.style.display = 'block';
       });
     });
   </script>
