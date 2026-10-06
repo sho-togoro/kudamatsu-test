@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>花岡 史跡AR [AR Ver.3]</title>
+  <title>花岡 史跡AR [AR Ver.4]</title>
   
   <!-- MindARとA-Frameの読み込み -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -14,38 +14,18 @@
       margin: 0;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      touch-action: manipulation;
     }
 
-    /* 画面全体を覆うタッチ受付レイヤー */
-    #touch-overlay {
+    /* 上部ステータス表示 */
+    .ar-status {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 999999;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px 16px 40px 16px;
-      box-sizing: border-box;
-      pointer-events: none; /* 最初はカメラの邪魔をしない */
-    }
-
-    /* 認識されたら全画面タップを有効化 */
-    #touch-overlay.active {
-      pointer-events: auto;
-      cursor: pointer;
-    }
-
-    /* 上部の通知ガイド */
-    .ar-guide {
-      background: rgba(15, 23, 42, 0.92);
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
       border: 2px solid #fbbf24;
       color: #fbbf24;
-      padding: 10px 18px;
+      padding: 10px 20px;
       border-radius: 30px;
       font-size: 0.9rem;
       font-weight: bold;
@@ -53,6 +33,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.6);
       width: 85%;
       max-width: 320px;
+      z-index: 10000;
       pointer-events: none;
     }
 
@@ -67,40 +48,18 @@
       vertical-align: middle;
     }
 
-    /* 認識時に画面下部に出る巨大バナー */
-    .jump-banner {
-      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-      border: 3px solid #fef3c7;
-      color: #111827;
-      font-size: 1.15rem;
-      font-weight: 900;
-      padding: 16px 24px;
-      border-radius: 35px;
-      box-shadow: 0 0 25px rgba(245, 158, 11, 0.9), 0 4px 10px rgba(0,0,0,0.5);
-      text-align: center;
-      display: none;
-      animation: bounce 1.2s infinite;
-      pointer-events: none;
-    }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+    .detected-status {
+      border-color: #34d399 !important;
+      color: #34d399 !important;
+      background: rgba(6, 78, 59, 0.95) !important;
     }
   </style>
 </head>
 <body>
 
-  <!-- 全画面タップ検知＆案内レイヤー -->
-  <div id="touch-overlay">
-    <div class="ar-guide" id="guide-text">
-      📷 マンホールの絵にかざしてください
-      <span class="version-tag">AR Ver.3</span>
-    </div>
-    
-    <div class="jump-banner" id="jump-banner">
-      👉 画面をタップして謎解き本編へ！
-    </div>
+  <div class="ar-status" id="status-text">
+    📷 マンホールの絵にかざしてください
+    <span class="version-tag">AR Ver.4</span>
   </div>
 
   <a-scene 
@@ -111,24 +70,27 @@
     device-orientation-permission-ui="enabled: false">
     
     <a-assets>
-      <img id="hanaoka-badge" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='256' viewBox='0 0 512 256'><rect x='8' y='8' width='496' height='240' rx='28' fill='%230f172a' stroke='%23fbbf24' stroke-width='8'/><text x='256' y='110' fill='%23fbbf24' font-size='76' font-family='sans-serif' font-weight='bold' text-anchor='middle' dominant-baseline='middle'>花 岡</text><text x='256' y='178' fill='%23ffffff' font-size='22' font-family='sans-serif' font-weight='bold' text-anchor='middle' dominant-baseline='middle'>— HANAOKA SHISEKI —</text></svg>">
+      <img id="hanaoka-badge" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='256' viewBox='0 0 512 256'><rect x='8' y='8' width='496' height='240' rx='28' fill='%230f172a' stroke='%23fbbf24' stroke-width='8'/><text x='256' y='105' fill='%23fbbf24' font-size='76' font-family='sans-serif' font-weight='bold' text-anchor='middle' dominant-baseline='middle'>花 岡</text><text x='256' y='170' fill='%2334d399' font-size='22' font-family='sans-serif' font-weight='bold' text-anchor='middle' dominant-baseline='middle'>【ここをタップして開始】</text></svg>">
     </a-assets>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <!-- 画面タップを3Dオブジェクトへ届けるためのRaycaster設定 -->
+    <a-camera position="0 0 0" look-controls="enabled: false" cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0" id="target-anchor">
-      <!-- 黄金の花岡プレート -->
+      <!-- 黄金の花岡プレート（直接タップ可能） -->
       <a-plane 
+        id="hanaoka-plate"
+        class="clickable"
         src="#hanaoka-badge" 
         position="0 0 0.1" 
-        width="1.2" 
-        height="0.6" 
+        width="1.3" 
+        height="0.65" 
         transparent="true">
       </a-plane>
 
       <!-- 上空で回転する黄金の星 -->
       <a-tetrahedron 
-        position="0 0.6 0.2" 
+        position="0 0.65 0.2" 
         radius="0.25" 
         color="#fbbf24" 
         animation="property: rotation; to: 0 360 0; loop: true; dur: 3500; easing: linear">
@@ -137,33 +99,63 @@
   </a-scene>
 
   <script>
-    let isFound = false;
+    let hasNavigated = false;
+    let autoTimer = null;
 
-    // index.html へ確実に飛ばす関数
-    function navigateToMain() {
-      if (isFound) {
-        window.location.href = "index.html";
-      }
+    // 本編へ確実に移動する関数
+    function goToMain() {
+      if (hasNavigated) return;
+      hasNavigated = true;
+      const status = document.getElementById("status-text");
+      status.innerHTML = '✨ 謎解き本編へ突入します！';
+      
+      // 画面遷移
+      window.location.replace("index.html");
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       const targetAnchor = document.getElementById('target-anchor');
-      const guide = document.getElementById('guide-text');
-      const banner = document.getElementById('jump-banner');
-      const touchOverlay = document.getElementById('touch-overlay');
+      const plate = document.getElementById('hanaoka-plate');
+      const status = document.getElementById('status-text');
 
-      // マンホールを検知したとき
-      targetAnchor.addEventListener('targetFound', () => {
-        isFound = true;
-        guide.innerHTML = '✨ 花岡の霊気を検知！ <span class="version-tag">AR Ver.3</span>';
-        guide.style.borderColor = '#34d399';
-        guide.style.color = '#34d399';
-
-        banner.style.display = 'block'; // 画面下に案内を表示
-        touchOverlay.classList.add('active'); // 画面全体のタップを有効化
+      // 1. AR空間内の「花岡」プレート自体をタップしたとき（即座に遷移）
+      plate.addEventListener('click', () => {
+        goToMain();
       });
 
-      // マンホールを見失ったとき
+      // 2. マンホールを検知したとき
+      targetAnchor.addEventListener('targetFound', () => {
+        status.classList.add('detected-status');
+        status.innerHTML = '✨ 霊気検知！タップまたは2秒後に突入 <span class="version-tag">AR Ver.4</span>';
+
+        // 保険：タップしなくても2秒後に自動で本編へ遷移
+        if (!autoTimer && !hasNavigated) {
+          autoTimer = setTimeout(() => {
+            goToMain();
+          }, 2000);
+        }
+      });
+
+      // 3. マンホールを見失ったとき
       targetAnchor.addEventListener('targetLost', () => {
-        isFound = false;
-        guide.innerHTML = '📷 マンホールの絵にかざしてください <span class="version
+        if (!hasNavigated) {
+          status.classList.remove('detected-status');
+          status.innerHTML = '📷 マンホールの絵にかざしてください <span class="version-tag">AR Ver.4</span>';
+          if (autoTimer) {
+            clearTimeout(autoTimer);
+            autoTimer = null;
+          }
+        }
+      });
+
+      // 4. 万が一のために画面どこでもタッチ検出
+      window.addEventListener('touchstart', () => {
+        if (status.classList.contains('detected-status')) {
+          goToMain();
+        }
+      }, { passive: true });
+    });
+  </script>
+
+</body>
+</html>
