@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>花岡 史跡AR [AR Ver.1]</title>
+  <title>花岡 史跡AR [AR Ver.2]</title>
   
   <!-- MindARとA-Frameの読み込み -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -16,24 +16,24 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    /* UIコンテナ：ARレイヤーの最前面に確実に配置 */
+    /* 最前面UIレイヤー */
     .ui-layer {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      pointer-events: none; /* 下のカメラは通す */
-      z-index: 2147483647; /* 最前面 */
+      pointer-events: none;
+      z-index: 2147483647;
     }
 
-    /* 上部の通知ガイド */
+    /* 上部ガイド枠 */
     .ar-guide {
       position: absolute;
       top: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.92);
       border: 2px solid #fbbf24;
       color: #fbbf24;
       padding: 10px 18px;
@@ -44,7 +44,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.6);
       width: 85%;
       max-width: 320px;
-      pointer-events: auto; /* タップを受け付ける */
+      pointer-events: auto;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
@@ -60,7 +60,6 @@
       vertical-align: middle;
     }
 
-    /* 検知時の光るスタイル */
     .ar-guide.detected {
       background: #065f46;
       border-color: #34d399;
@@ -68,7 +67,7 @@
       box-shadow: 0 0 15px #34d399;
     }
 
-    /* 検知時に画面下部に出る確実な決定ボタン */
+    /* 下部決定ボタン */
     .jump-btn {
       position: absolute;
       bottom: 40px;
@@ -86,14 +85,13 @@
       pointer-events: auto;
       text-align: center;
       white-space: nowrap;
-      display: none; /* 最初は隠す */
+      display: none;
       -webkit-tap-highlight-color: transparent;
     }
     .jump-btn:active {
       transform: translateX(-50%) scale(0.96);
     }
 
-    /* スキャン中の円枠 */
     .scanning-overlay {
       position: absolute;
       top: 50%;
@@ -110,21 +108,18 @@
 </head>
 <body>
 
-  <!-- 最前面UIレイヤー -->
   <div class="ui-layer">
     <div class="ar-guide" id="guide-text">
       📷 マンホールの絵にかざしてください
-      <span class="version-tag">AR Ver.1</span>
+      <span class="version-tag">AR Ver.2</span>
     </div>
     <div class="scanning-overlay" id="scan-frame"></div>
     
-    <!-- 検知時に出現する決定ボタン -->
     <button class="jump-btn" id="action-btn">
       📜 謎解き本編へ進む！
     </button>
   </div>
 
-  <!-- MindAR シーン -->
   <a-scene 
     mindar-image="imageTargetSrc: targets.mind; filterMinCF: 0.001; filterBeta: 1000;" 
     color-space="sRGB" 
@@ -132,39 +127,22 @@
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
+    <!-- 白飛び防止：確実なSVG画像アセットを事前読み込み -->
+    <a-assets>
+      <img id="hanaoka-badge" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='256' viewBox='0 0 512 256'><rect x='8' y='8' width='496' height='240' rx='28' fill='%230f172a' stroke='%23fbbf24' stroke-width='8'/><text x='256' y='110' fill='%23fbbf24' font-size='76' font-family='sans-serif' font-weight='bold' text-anchor='middle' dominant-baseline='middle'>花 岡</text><text x='256' y='178' fill='%23ffffff' font-size='22' font-family='sans-serif' font-weight='bold' text-anchor='middle' dominant-baseline='middle'>— HANAOKA SHISEKI —</text></svg>">
+    </a-assets>
+
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0" id="target-anchor">
-      <!-- 黄金プレート -->
-      <a-plane id="text-plane" position="0 0 0.1" width="1.2" height="0.6" material="transparent: true;"></a-plane>
+      <!-- 黄金の花岡プレート（白飛びせず確実に文字を表示） -->
+      <a-plane 
+        src="#hanaoka-badge" 
+        position="0 0 0.1" 
+        width="1.2" 
+        height="0.6" 
+        transparent="true">
+      </a-plane>
 
-      <!-- 回転する星 -->
-      <a-tetrahedron 
-        position="0 0.6 0.2" 
-        radius="0.25" 
-        color="#fbbf24" 
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 3500; easing: linear">
-      </a-tetrahedron>
-    </a-entity>
-  </a-scene>
-
-  <script>
-    // 確実にindex.htmlへ遷移させる関数
-    function goToIndex() {
-      window.location.href = "index.html";
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      // 「花岡」の文字プレートを描画
-      const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 256;
-      const ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-      ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 24) : ctx.fillRect(10, 10, 492, 236);
-      ctx.fill();
-
-      ctx.lineWidth = 8;
-      ctx.strokeStyle = '#fbbf24';
-      ctx.
+      <!-- 上空で回転する黄金の星 -->
+      <a-tetrahedron
