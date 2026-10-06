@@ -3,48 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>オリジナルマーカーARテスト</title>
+  <title>花岡 史跡AR</title>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
     .ar-guide {
       position: fixed;
       top: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.8);
       color: #fbbf24;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-family: sans-serif;
-      font-size: 0.85rem;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 0.9rem;
       font-weight: bold;
       z-index: 1000;
       border: 1px solid #fbbf24;
       pointer-events: none;
       text-align: center;
+      width: 80%;
+      max-width: 320px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
   </style>
 </head>
 <body>
 
-  <div class="ar-guide">📷 マンホールマーカーにかざしてください</div>
+  <div class="ar-guide" id="guide-text">📷 黒枠付きのマンホールマーカーにかざしてください</div>
 
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+  <!-- A-Frame AR シーン -->
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;">
     
-    <!-- アップロードした pattern-marker.patt を読み込む -->
-    <a-marker type="pattern" url="pattern-marker.patt">
-      <!-- マーカーの上に表示するオブジェクト -->
-      <a-box position="0 0.2 0" material="color: #c53030; opacity: 0.9;" depth="0.1" height="0.6" width="2"></a-box>
-      <a-text value="CARP MANHOLE\nDETECTED!" position="0 0.25 0.1" align="center" color="#ffffff" width="3"></a-text>
+    <!-- アップロードした pattern-marker.patt を指定 -->
+    <a-marker id="my-marker" type="pattern" url="pattern-marker.patt">
       
-      <!-- ふわふわ回る黄金の星 -->
-      <a-tetrahedron position="0 1.2 0" radius="0.5" color="#fbbf24" animation="property: rotation; to: 0 360 0; loop: true; dur: 3500"></a-tetrahedron>
+      <!-- 1. 「花岡」と書かれた黄金の御札（日本語対応プレート） -->
+      <a-plane id="text-plane" position="0 0.3 0" rotation="-90 0 0" width="2" height="1" material="transparent: true;"></a-plane>
+
+      <!-- 2. その上空でゆっくり自転する黄金の星（ピラミッド結晶） -->
+      <a-tetrahedron position="0 1.0 0" radius="0.4" color="#f59e0b" animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-tetrahedron>
+
     </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
+
+  <script>
+    // 日本語「花岡」を綺麗にテクスチャとして描画
+    window.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      // 背景の札（黒金枠）
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 20) : ctx.fillRect(10, 10, 492, 236);
+      ctx.fill();
+
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#f59e0b';
+      ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 20) : ctx.strokeRect(10, 10, 492, 236);
+      ctx.stroke();
+
+      // 文字「花 岡」
+      ctx.font = 'bold 80px "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+      ctx.fillStyle = '#f59e0b';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('花  岡', 256, 105);
+
+      // 補足英字
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('— HANAOKA SHISEKI —', 256, 175);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const plane = document.getElementById('text-plane');
+      plane.addEventListener('loaded', () => {
+        plane.getObject3D('mesh').material.map = texture;
+        plane.getObject3D('mesh').material.needsUpdate = true;
+      });
+
+      // マーカー認識時のガイド文字変更
+      const marker = document.getElementById('my-marker');
+      const guide = document.getElementById('guide-text');
+      marker.addEventListener('markerFound', () => {
+        guide.innerText = '✨ 花岡の霊気を検知しました！';
+        guide.style.color = '#34d399';
+      });
+      marker.addEventListener('markerLost', () => {
+        guide.innerText = '📷 黒枠付きのマンホールマーカーにかざしてください';
+        guide.style.color = '#fbbf24';
+      });
+    });
+  </script>
 
 </body>
 </html>
