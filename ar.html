@@ -20,21 +20,39 @@
       top: 16px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid #fbbf24;
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid #fbbf24;
       color: #fbbf24;
-      padding: 10px 22px;
+      padding: 10px 20px;
       border-radius: 30px;
       font-size: 0.9rem;
       font-weight: bold;
       z-index: 10000;
-      pointer-events: none;
       text-align: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-      width: 80%;
+      width: 85%;
       max-width: 320px;
+      cursor: default;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    /* スキャン中の四角い枠演出 */
+    /* 検知されたときのボタンスタイル */
+    .ar-guide.detected {
+      background: #065f46;
+      border-color: #34d399;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 15px #34d399;
+      animation: pulse 1.5s infinite;
+    }
+    .ar-guide.detected:active {
+      transform: translateX(-50%) scale(0.96);
+    }
+    @keyframes pulse {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.03); }
+    }
+    /* スキャン中の円枠演出 */
     .scanning-overlay {
       position: fixed;
       top: 50%;
@@ -68,10 +86,10 @@
     <!-- targets.mind 内の最初の画像（インデックス0）を認識したとき -->
     <a-entity mindar-image-target="targetIndex: 0" id="target-anchor">
       
-      <!-- 1. 「花岡」と書かれた黄金プレート（マンホールの中心真上に浮かぶ） -->
+      <!-- 1. 「花岡」と書かれた黄金プレート -->
       <a-plane id="text-plane" position="0 0 0.1" width="1.2" height="0.6" material="transparent: true;"></a-plane>
 
-      <!-- 2. ふわふわ浮遊しながら回る黄金の星（ピラミッド結晶） -->
+      <!-- 2. 上空で回る黄金の星 -->
       <a-tetrahedron 
         position="0 0.6 0.2" 
         radius="0.25" 
@@ -83,7 +101,9 @@
   </a-scene>
 
   <script>
-    // 日本語「花岡」の文字プレートを描画
+    let isDetected = false;
+
+    // 「花岡」の文字プレートを描画
     window.addEventListener('DOMContentLoaded', () => {
       const canvas = document.createElement('canvas');
       canvas.width = 512;
@@ -108,7 +128,7 @@
       ctx.textBaseline = 'middle';
       ctx.fillText('花  岡', 256, 105);
 
-      // 下松・花岡のサブタイトル
+      // サブタイトル
       ctx.font = 'bold 24px sans-serif';
       ctx.fillStyle = '#f1f5f9';
       ctx.fillText('— HANAOKA SHISEKI —', 256, 175);
@@ -120,26 +140,12 @@
         plane.getObject3D('mesh').material.needsUpdate = true;
       });
 
-      // 画像を認識した時のイベント処理
+      // マーカー検知・ロストのイベント処理
       const targetAnchor = document.getElementById('target-anchor');
       const guide = document.getElementById('guide-text');
       const scanFrame = document.getElementById('scan-frame');
 
       targetAnchor.addEventListener('targetFound', () => {
-        guide.innerText = '✨ 花岡の霊気を検知！';
-        guide.style.borderColor = '#34d399';
-        guide.style.color = '#34d399';
-        scanFrame.style.display = 'none'; // 枠を隠す
-      });
-
-      targetAnchor.addEventListener('targetLost', () => {
-        guide.innerText = '📷 マンホールの絵にかざしてください';
-        guide.style.borderColor = '#fbbf24';
-        guide.style.color = '#fbbf24';
-        scanFrame.style.display = 'block';
-      });
-    });
-  </script>
-
-</body>
-</html>
+        isDetected = true;
+        guide.classList.add('detected');
+        guide.innerHTML = '✨ 花岡の霊気を検知！<br><span style="font-size: 0.75rem; text-decoration: underline;">【タップして本編へ戻る】</span>';
