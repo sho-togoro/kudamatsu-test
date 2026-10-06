@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>下松史跡謎解き - 花岡編</title>
+  <title>下松史跡謎解き - 花岡編 [Ver.1]</title>
   <style>
     * {
       box-sizing: border-box;
@@ -29,9 +29,19 @@
       border-bottom: 2px solid #d97706;
     }
     .title {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       color: #fbbf24;
       font-weight: bold;
+    }
+    .version-tag {
+      display: inline-block;
+      font-size: 0.8rem;
+      background-color: #d97706;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
     }
     .card {
       background-color: #1f2937;
@@ -127,7 +137,7 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: #000;
+      background-color: #0b0f17;
       z-index: 99999;
       display: none;
       flex-direction: column;
@@ -145,7 +155,7 @@
     .camera-ui-top {
       position: absolute;
       top: 24px;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       border: 1px solid #fbbf24;
       padding: 8px 16px;
       border-radius: 20px;
@@ -155,13 +165,22 @@
       z-index: 10;
       text-align: center;
     }
-    /* 景色の上に浮かび上がる答えのオーブ */
+    .camera-error-msg {
+      position: absolute;
+      top: 70px;
+      color: #f87171;
+      font-size: 0.8rem;
+      background: rgba(0,0,0,0.8);
+      padding: 4px 10px;
+      border-radius: 4px;
+      z-index: 10;
+    }
     .answer-orb {
       position: absolute;
       top: 45%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(17, 24, 39, 0.9);
+      background: rgba(17, 24, 39, 0.92);
       border: 3px solid #fbbf24;
       box-shadow: 0 0 25px #f59e0b, 0 0 50px #f59e0b;
       padding: 20px 32px;
@@ -187,7 +206,7 @@
     .camera-close-btn {
       position: absolute;
       bottom: 30px;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.7);
       border: 1px solid #fff;
       color: #fff;
       padding: 10px 24px;
@@ -202,7 +221,10 @@
 
 <div class="container">
   <div class="header">
-    <div class="title">下松史跡巡礼 - 花岡の謎</div>
+    <div class="title">
+      下松史跡巡礼 - 花岡の謎
+      <span class="version-tag">Ver.1</span>
+    </div>
   </div>
 
   <div class="card" id="app-content"></div>
@@ -211,7 +233,8 @@
 <!-- カメラ全画面小窓 -->
 <div id="camera-modal">
   <video id="camera-video" playsinline autoplay muted></video>
-  <div class="camera-ui-top">🌌 妙見の星が景色に文字を刻んだ！</div>
+  <div class="camera-ui-top">🌌 妙見の星が降臨した！</div>
+  <div id="camera-err" class="camera-error-msg" style="display: none;"></div>
   
   <div class="answer-orb" onclick="applyAnswerFromCamera()">
     <div class="word" id="camera-answer-word">花</div>
@@ -316,28 +339,40 @@ function onAnswerClick() {
   }
 }
 
-// ---------- カメラAR処理 ----------
+// ---------- カメラAR起動処理（スマホ完全対応版） ----------
 function openCameraHint() {
   var stage = stages[currentStage];
   document.getElementById("camera-answer-word").innerText = stage.correct;
   var modal = document.getElementById("camera-modal");
   var video = document.getElementById("camera-video");
+  var errEl = document.getElementById("camera-err");
 
+  errEl.style.display = "none";
   modal.style.display = "flex";
 
-  // 背面カメラの起動
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-      audio: false
-    }).then(function(stream) {
-      videoStream = stream;
-      video.srcObject = stream;
-    }).catch(function(err) {
-      // カメラが拒否された・PCの場合は夜空風の背景にする
-      video.style.backgroundColor = "#030712";
-    });
+  // カメラ機能が使えるか確認
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    errEl.innerText = "※お使いの環境ではカメラが使えません（夜空モード）";
+    errEl.style.display = "block";
+    return;
   }
+
+  // 背面カメラの起動を要求
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: "environment" } },
+    audio: false
+  }).then(function(stream) {
+    videoStream = stream;
+    video.srcObject = stream;
+    // スマホでの自動再生を開始
+    video.play().catch(function(e) {
+      console.log("Play error:", e);
+    });
+  }).catch(function(err) {
+    // 許可されなかった場合やエラー時の案内
+    errEl.innerText = "※カメラを許可すると背景が映ります（文字タップで進めます）";
+    errEl.style.display = "block";
+  });
 }
 
 function closeCamera() {
