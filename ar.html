@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>花岡 史跡AR (画像認識版)</title>
+  <title>花岡 史跡AR [AR Ver.1]</title>
   
   <!-- MindARとA-Frameの読み込み -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -15,54 +15,94 @@
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    .ar-guide {
+
+    /* UIコンテナ：ARレイヤーの最前面に確実に配置 */
+    .ui-layer {
       position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none; /* 下のカメラは通す */
+      z-index: 2147483647; /* 最前面 */
+    }
+
+    /* 上部の通知ガイド */
+    .ar-guide {
+      position: absolute;
       top: 16px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.9);
       border: 2px solid #fbbf24;
       color: #fbbf24;
-      padding: 10px 20px;
+      padding: 10px 18px;
       border-radius: 30px;
       font-size: 0.9rem;
       font-weight: bold;
-      z-index: 10000;
       text-align: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.6);
       width: 85%;
       max-width: 320px;
-      cursor: default;
-      transition: all 0.2s ease;
+      pointer-events: auto; /* タップを受け付ける */
+      cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    /* 検知されたときのボタンスタイル */
+
+    .version-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      background-color: #d97706;
+      color: #fff;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* 検知時の光るスタイル */
     .ar-guide.detected {
       background: #065f46;
       border-color: #34d399;
       color: #ffffff;
-      cursor: pointer;
       box-shadow: 0 0 15px #34d399;
-      animation: pulse 1.5s infinite;
     }
-    .ar-guide.detected:active {
+
+    /* 検知時に画面下部に出る確実な決定ボタン */
+    .jump-btn {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      border: 2px solid #fef3c7;
+      color: #111827;
+      font-size: 1.1rem;
+      font-weight: 800;
+      padding: 16px 28px;
+      border-radius: 35px;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 4px 6px rgba(0,0,0,0.5);
+      cursor: pointer;
+      pointer-events: auto;
+      text-align: center;
+      white-space: nowrap;
+      display: none; /* 最初は隠す */
+      -webkit-tap-highlight-color: transparent;
+    }
+    .jump-btn:active {
       transform: translateX(-50%) scale(0.96);
     }
-    @keyframes pulse {
-      0%, 100% { transform: translateX(-50%) scale(1); }
-      50% { transform: translateX(-50%) scale(1.03); }
-    }
-    /* スキャン中の円枠演出 */
+
+    /* スキャン中の円枠 */
     .scanning-overlay {
-      position: fixed;
+      position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 260px;
-      height: 260px;
+      width: 240px;
+      height: 240px;
       border: 2px dashed rgba(251, 191, 36, 0.6);
       border-radius: 50%;
-      z-index: 9999;
       pointer-events: none;
       box-sizing: border-box;
     }
@@ -70,8 +110,19 @@
 </head>
 <body>
 
-  <div class="ar-guide" id="guide-text">📷 マンホールの絵にかざしてください</div>
-  <div class="scanning-overlay" id="scan-frame"></div>
+  <!-- 最前面UIレイヤー -->
+  <div class="ui-layer">
+    <div class="ar-guide" id="guide-text">
+      📷 マンホールの絵にかざしてください
+      <span class="version-tag">AR Ver.1</span>
+    </div>
+    <div class="scanning-overlay" id="scan-frame"></div>
+    
+    <!-- 検知時に出現する決定ボタン -->
+    <button class="jump-btn" id="action-btn">
+      📜 謎解き本編へ進む！
+    </button>
+  </div>
 
   <!-- MindAR シーン -->
   <a-scene 
@@ -83,69 +134,37 @@
     
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- targets.mind 内の最初の画像（インデックス0）を認識したとき -->
     <a-entity mindar-image-target="targetIndex: 0" id="target-anchor">
-      
-      <!-- 1. 「花岡」と書かれた黄金プレート -->
+      <!-- 黄金プレート -->
       <a-plane id="text-plane" position="0 0 0.1" width="1.2" height="0.6" material="transparent: true;"></a-plane>
 
-      <!-- 2. 上空で回る黄金の星 -->
+      <!-- 回転する星 -->
       <a-tetrahedron 
         position="0 0.6 0.2" 
         radius="0.25" 
         color="#fbbf24" 
         animation="property: rotation; to: 0 360 0; loop: true; dur: 3500; easing: linear">
       </a-tetrahedron>
-
     </a-entity>
   </a-scene>
 
   <script>
-    let isDetected = false;
+    // 確実にindex.htmlへ遷移させる関数
+    function goToIndex() {
+      window.location.href = "index.html";
+    }
 
-    // 「花岡」の文字プレートを描画
     window.addEventListener('DOMContentLoaded', () => {
+      // 「花岡」の文字プレートを描画
       const canvas = document.createElement('canvas');
       canvas.width = 512;
       canvas.height = 256;
       const ctx = canvas.getContext('2d');
 
-      // 背景プレート
       ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
       ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 24) : ctx.fillRect(10, 10, 492, 236);
       ctx.fill();
 
-      // 金の縁取り
       ctx.lineWidth = 8;
       ctx.strokeStyle = '#fbbf24';
-      ctx.roundRect ? ctx.roundRect(10, 10, 492, 236, 24) : ctx.strokeRect(10, 10, 492, 236);
-      ctx.stroke();
-
-      // 「花 岡」の文字
-      ctx.font = 'bold 84px "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
-      ctx.fillStyle = '#fbbf24';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('花  岡', 256, 105);
-
-      // サブタイトル
-      ctx.font = 'bold 24px sans-serif';
-      ctx.fillStyle = '#f1f5f9';
-      ctx.fillText('— HANAOKA SHISEKI —', 256, 175);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      const plane = document.getElementById('text-plane');
-      plane.addEventListener('loaded', () => {
-        plane.getObject3D('mesh').material.map = texture;
-        plane.getObject3D('mesh').material.needsUpdate = true;
-      });
-
-      // マーカー検知・ロストのイベント処理
-      const targetAnchor = document.getElementById('target-anchor');
-      const guide = document.getElementById('guide-text');
-      const scanFrame = document.getElementById('scan-frame');
-
-      targetAnchor.addEventListener('targetFound', () => {
-        isDetected = true;
-        guide.classList.add('detected');
-        guide.innerHTML = '✨ 花岡の霊気を検知！<br><span style="font-size: 0.75rem; text-decoration: underline;">【タップして本編へ戻る】</span>';
+      ctx.
